@@ -1,0 +1,15 @@
+[project]
+name = "tdf-pool"
+description = "tour de france"
+version = "0.1.0"
+authors = [
+    { name = "Marick Manrho", email = "marickmanrho@gmail.com" }
+]
+dependencies = [
+    "requests",
+    "pandas",
+    "lxml",
+    "matplotlib",
+    "python-dotenv",
+    "scipy"
+]
