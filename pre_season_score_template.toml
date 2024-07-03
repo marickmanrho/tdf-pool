@@ -1,0 +1,86 @@
+[stage]
+
+[stage.rank]
+key = ["Stage", "General"]
+points = [35, 30, 25, 20, 15, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+name = "Stage"
+
+[stage.gc]
+key = ['GC', 'General']
+points = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+name = 'GC'
+
+[stage.kom]
+key = ['KOM', 'General']
+points = [10, 8, 6, 4, 2]
+name = 'KOM'
+
+[stage.sprint]
+key = ['Points', 'General']
+points = [20, 15, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+name = 'Sprint'
+
+[stage.youth]
+key = ['Youth', 'General']
+points = [20, 15, 10, 8, 6, 4, 2]
+name = 'Youth'
+
+[stage.intermediate_sprints]
+key = ['Points', 'Today']
+key_filter = ["Points at finish"]
+rank_by = '#'
+points = [10, 8, 5, 4, 3, 2, 1]
+name = "IntermediateSprint"
+
+[stage.intermediate_koms]
+key = ['KOM', "Today"]
+rank_by = '#'
+points = 'Points'
+name = 'IntermediateKOM'
+
+[race]
+# Race scores are given in addition to all stage results.
+# IMPORTANT: The tdf score template seemingly deviates from this template,
+# However, the result should be the same. The tdf score template doen't score classifications (gc, kom, points, youth) for the final stage.
+# Here we score all stages the same way, thus the race scores are the scores minus the stage classification scores.
+
+[race.gc]
+key = ['GC', 'General']
+points = [
+    60,
+    51,
+    44,
+    41,
+    38,
+    35,
+    34,
+    33,
+    32,
+    31,
+    30,
+    28,
+    26,
+    24,
+    22,
+    20,
+    18,
+    16,
+    14,
+    12,
+]
+name = 'GC'
+
+[race.sprint]
+key = ['Points', 'General']
+points = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
+name = 'Sprint'
+
+[race.kom]
+key = ['KOM', "General"]
+points = [5, 3, 2, 1]
+name = 'KOM'
+
+[race.youth]
+key = ['Youth', 'General']
+points = [5, 3, 2, 1]
+name = 'Youth'

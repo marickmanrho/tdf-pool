@@ -1,10 +1,12 @@
 import logging
+from datetime import date
 
 import pandas as pd
 from dotenv import load_dotenv
 from lxml import etree
-from datetime import date
-from tdf_pool.download import get_stage_filepath, download_webpage
+import pickle
+
+from tdf_pool.download import download_webpage, get_stage_filepath
 
 _logger = logging.getLogger(__name__)
 
@@ -15,42 +17,53 @@ class Stage:
         race_name: str,
         stage_name: str,
         stage_date: date,
-        stage_nr: int | None = None,
+        stage_nr: int,
+        partial_url: str,
         stage_type: str | None = None,
-        partial_url: str | None = None,
+        stage_profile: str | None = None,
     ):
         self.race_name = race_name
         self.stage_name = stage_name
         self.date = stage_date
         self.number = stage_nr
         self.type = stage_type
+        self.profile = stage_profile
         self._partial_url = partial_url
 
-        if partial_url is None:
-            self.results = {}
-        else:
-            self._download_results()
-            self._load_results()
-
-    def _download_results(self):
-        download_webpage(
-            "https://www.procyclingstats.com/" + self._partial_url,
-            filepath=get_stage_filepath(
-                self.race_name, self.date.year, stage=self.number
-            ),
-            strict=False,
-        )
+        self._load_results()
 
     def _load_results(self):
-        tree = get_stage_html_tree(self.race_name, self.date.year, self.number)
-        self.results = read_stage_results(tree)
+        stage_filepath = get_stage_filepath(
+            self.race_name, self.date.year, stage=self.number
+        )
+        stage_results_filepath = stage_filepath.with_suffix(".pickle")
+
+        if stage_results_filepath.exists():
+            with open(stage_results_filepath, "rb") as results_file:
+                self.results = pickle.load(results_file)
+        else:
+            download_webpage(
+                "https://www.procyclingstats.com/" + self._partial_url,
+                filepath=get_stage_filepath(
+                    self.race_name, self.date.year, stage=self.number
+                ),
+                strict=False,
+            )
+            tree = get_stage_html_tree(self.race_name, self.date.year, self.number)
+            results = read_stage_results(tree)
+            with open(stage_results_filepath, "wb") as results_file:
+                pickle.dump(results, results_file)
+
+            self.results = results
+
+        _logger.info("[ OK ] Loaded results for %s", self)
 
     @property
     def available_results(self) -> list[str]:
         return [str(k) for k in self.results.keys()]
 
     def __repr__(self):
-        return f"<Race: {self.race_name}, Stage: {self.number}, Date: {self.date}, Type: {self.type}>"
+        return f"<{self.race_name} stage {self.number}, {self.stage_name}, Date: {self.date}, Type: {self.type}>"
 
 
 def get_stage_html_tree(race: str, year: str | int, stage: int = 1) -> etree._Element:
@@ -163,13 +176,16 @@ def read_stage_results(stage_tree: etree._Element) -> dict[str, pd.DataFrame]:
             for tab_id, tab_name in tab_names.items()
         }
     else:
-        stage_data = {
-            "Stage": {
-                "General": pd.read_html(
-                    etree.tostring(stage_tree.xpath("//table")[0], method="html")
-                )[0]
+        tables = stage_tree.xpath("//table")
+        if len(tables) > 0:
+            stage_data = {
+                "Stage": {
+                    "General": pd.read_html(etree.tostring(tables[0], method="html"))[0]
+                }
             }
-        }
+        else:
+            _logger.debug("[    ] No tables found")
+            stage_data = {}
 
     _logger.debug("[ OK ] succesfully parsed stage results")
     return stage_data
@@ -177,7 +193,13 @@ def read_stage_results(stage_tree: etree._Element) -> dict[str, pd.DataFrame]:
 
 if __name__ == "__main__":
     load_dotenv()
-    logging.basicConfig(level="DEBUG")
-    tree = get_stage_html_tree("tour-de-france", 2019, 2)
-    results = read_stage_results(tree)
-    print(results["Stage"]["General"])
+    logging.basicConfig(level="INFO")
+    stage = Stage(
+        "Tour de France",
+        "Passy - Combloux",
+        date(2023, 7, 18),
+        16,
+        "race/tour-de-france/2023/stage-16",
+        stage_type="ITT",
+    )
+    print(stage.results["Stage"]["General"])

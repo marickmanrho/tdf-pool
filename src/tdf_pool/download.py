@@ -1,8 +1,8 @@
 import logging
-from pathlib import Path
-from time import sleep
-from random import random
 import os
+from pathlib import Path
+from random import random
+from time import sleep
 
 import requests
 
@@ -12,8 +12,9 @@ _logger = logging.getLogger(__name__)
 def download_webpage(
     url: str,
     filepath: Path,
-    strict=True,
-    overwrite=False,
+    strict: bool = True,
+    overwrite: bool = False,
+    cooldown: float | int | None = None,
 ) -> None:
 
     if not filepath.parent.exists():
@@ -39,12 +40,11 @@ def download_webpage(
     with open(filepath, "wb") as file:
         file.write(page.content)
 
-    _logger.info("[ OK ] downloaded %s", url)
-    _logger.debug("[    ] downloaded %s into %s", url, filepath)
+    _logger.info("[ OK ] downloaded %s into %s", url, filepath)
 
-    waiting_time = 2 + 4 * random()
-    _logger.debug("[    ] initiating cooldown of %s seconds", waiting_time)
-    sleep(waiting_time)
+    cooldown = cooldown or 2 + 4 * random()
+    _logger.debug("[    ] initiating cooldown of %s seconds", cooldown)
+    sleep(cooldown)
 
 
 def construct_race_name(race: str):
@@ -73,6 +73,12 @@ def get_overview_filepath(race: str, year: int) -> Path:
     race_name = construct_race_name(race)
     race_path = get_race_folderpath(race, year)
     return race_path / f"{race_name}_{year}_overview.html"
+
+
+def get_startlist_filepath(race: str, year: int) -> Path:
+    race_name = construct_race_name(race)
+    race_path = get_race_folderpath(race, year)
+    return race_path / f"{race_name}_{year}_startlist.html"
 
 
 def get_calender_filepath(year: int) -> Path:

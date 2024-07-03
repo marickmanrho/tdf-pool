@@ -4,10 +4,8 @@ from datetime import date
 import pandas as pd
 from dotenv import load_dotenv
 from lxml import etree
-from tdf_pool.download import (
-    download_webpage,
-    get_calender_filepath,
-)
+
+from tdf_pool.download import download_webpage, get_calender_filepath
 from tdf_pool.race import Race
 
 _logger = logging.getLogger(__name__)
@@ -25,8 +23,6 @@ def get_calendar(year: int = 2024) -> pd.DataFrame:
     # Load races file``
     with open(calendar_filepath, "r", encoding="utf-8") as file:
         tree = etree.HTML(str(file.read()))
-
-    _logger.info("[ OK ] Read race calender of %s", year)
 
     races = tree.xpath("//table/tbody/tr")
     race_data = []
@@ -58,7 +54,7 @@ def get_calendar(year: int = 2024) -> pd.DataFrame:
     races = pd.DataFrame(
         race_data, columns=["Start", "End", "Name", "PartialURL", "Type"]
     )
-
+    _logger.info("[ OK ] Read race calender of %s", year)
     return races
 
 

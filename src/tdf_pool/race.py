@@ -1,11 +1,15 @@
 import logging
 from datetime import date
+from typing import Literal
+
 import pandas as pd
 from dotenv import load_dotenv
 from lxml import etree
+
 from tdf_pool.download import (
     download_webpage,
     get_overview_filepath,
+    get_startlist_filepath,
 )
 from tdf_pool.stage import Stage
 
@@ -16,9 +20,9 @@ class Race:
     def __init__(
         self,
         race_name: str,
-        race_date: int | str,
-        race_type: str,
-        partial_url: str | None = None,
+        race_date: date,
+        race_type: Literal["1.UWT", "2.UWT"],
+        partial_url: str,
     ):
         self.name = race_name
         self.date = race_date
@@ -60,10 +64,41 @@ class Race:
                     stage_date=stage["Date"],
                     stage_nr=stage_nr + 1,
                     stage_type=stage["Type"],
+                    stage_profile=stage["Profile"],
                     partial_url=stage["PartialURL"],
                 )
                 for stage_nr, stage in self._stage_list.iterrows()
             ]
+
+    @property
+    def startlist(self):
+        # Get startlist page instead of final gc
+        start_list_page_link = (
+            "https://www.procyclingstats.com/"
+            + self._partial_url.replace("/gc", "").replace("/result", "")
+            + "/startlist"
+        )
+        print(start_list_page_link)
+        download_webpage(
+            start_list_page_link,
+            filepath=get_startlist_filepath(self.name, self.date.year),
+            strict=False,
+        )
+
+        startlist = list_riders(self.name, self.date.year)
+
+        if "-" in startlist["BIB"]:
+            teamname = ""
+            bib = 0
+            teamnr = 1
+            for idx, row in startlist.iterrows():
+                if row["Team"] != teamname:
+                    teamname = row["Team"]
+                    teamnr += 1
+                    bib = 1
+                startlist.loc[idx, "BIB"] = str(teamnr) + str(bib)
+                bib += 1
+        return startlist
 
     def __repr__(self):
         return f"<Race: {self.name}, Date: {self.date}, number of stages: {len(self.stages)}>"
@@ -90,16 +125,7 @@ def list_multiday_race_stages(race, year):
         stage_day, stage_month = columns[0].text.split("/")
         stage_date = date(year, int(stage_month), int(stage_day))
         if columns[3].text and columns[3].text == "Restday":
-            data.append(
-                [
-                    stage_date,
-                    stage_date.strftime("%A"),
-                    None,
-                    "Restday",
-                    None,
-                    None,
-                ]
-            )
+            continue
         else:
             stage_day_of_week = columns[1].text
             stage_profile = columns[2].xpath("span")[0].attrib["class"]
@@ -136,19 +162,52 @@ def list_multiday_race_stages(race, year):
     return race_stages
 
 
+def list_riders(race, year):
+    _logger.debug("[    ] Reading race startlist page")
+    startlist_filepath = get_startlist_filepath(race, year)
+    with open(startlist_filepath, "r", encoding="utf-8") as file:
+        tree = etree.HTML(str(file.read()))
+    _logger.debug("[ OK ] Read startlist page")
+
+    data = []
+
+    teams = tree.xpath('//ul[contains(@class, "startlist_v4")]/li')
+    for team_nr, team in enumerate(teams):
+        teamname = team.xpath('div/div/a[contains(@class, "team")]')[0].text
+        clean_teamname_parts = [
+            s.translate(str.maketrans("", "", " \n\t\r")) for s in teamname.split(" ")
+        ]
+        clean_teamname = " ".join([s for s in clean_teamname_parts if s != ""])
+        clean_teamname = clean_teamname.split("(")[0].strip()
+
+        riders = team.xpath("div/ul/li")
+        for rider_nr, rider in enumerate(riders):
+            bib = rider.xpath('span[contains(@class, "bib")]')[0].text
+            if bib == "":
+                bib = str(team_nr) + str(rider_nr)
+            name = rider.xpath("a")[0].text
+            name_parts = [
+                s.translate(str.maketrans("", "", " \n\t\r")) for s in name.split(" ")
+            ]
+            clean_name = " ".join([s for s in name_parts if s != ""])
+            data.append((teamname, bib, clean_name))
+
+    return pd.DataFrame(data, columns=["Team", "BIB", "Rider"])
+
+
 if __name__ == "__main__":
     load_dotenv()
     logging.basicConfig(level="INFO")
     giro = Race(
-        "Giro d'Italia", date(2023, 5, 6), "2.UWT", "race/giro-d-italia/2023/gc"
+        "Tour de France", date(2024, 6, 29), "2.UWT", "race/tour-de-france/2024"
     )
-    print(giro)
-    print(giro._stage_list)
-    print(
-        Race(
-            "Strade Bianche",
-            date(2023, 3, 4),
-            "1.UWT",
-            "race/strade-bianche/2023/result",
-        )
-    )
+    # print(giro)
+    print(giro.startlist)
+    # print(
+    #     Race(
+    #         "Strade Bianche",
+    #         date(2023, 3, 4),
+    #         "1.UWT",
+    #         "race/strade-bianche/2023/result",
+    #     )
+    # )
