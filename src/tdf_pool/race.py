@@ -23,11 +23,13 @@ class Race:
         race_date: date,
         race_type: Literal["1.UWT", "2.UWT"],
         partial_url: str,
+        overwrite: bool = False,
     ):
         self.name = race_name
         self.date = race_date
         self.race_type = race_type
         self._partial_url = partial_url
+        self.overwrite = overwrite
 
         self.stages = []
         self._get_stages()
@@ -53,6 +55,7 @@ class Race:
                 overview_page_link,
                 filepath=get_overview_filepath(self.name, self.date.year),
                 strict=False,
+                overwrite=self.overwrite,
             )
 
             # Get list of stages
@@ -66,6 +69,7 @@ class Race:
                     stage_type=stage["Type"],
                     stage_profile=stage["Profile"],
                     partial_url=stage["PartialURL"],
+                    overwrite=self.overwrite,
                 )
                 for stage_nr, stage in self._stage_list.iterrows()
             ]
@@ -83,6 +87,7 @@ class Race:
             start_list_page_link,
             filepath=get_startlist_filepath(self.name, self.date.year),
             strict=False,
+            overwrite=self.overwrite,
         )
 
         startlist = list_riders(self.name, self.date.year)

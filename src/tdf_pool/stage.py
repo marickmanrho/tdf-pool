@@ -21,6 +21,7 @@ class Stage:
         partial_url: str,
         stage_type: str | None = None,
         stage_profile: str | None = None,
+        overwrite: bool = False,
     ):
         self.race_name = race_name
         self.stage_name = stage_name
@@ -29,6 +30,7 @@ class Stage:
         self.type = stage_type
         self.profile = stage_profile
         self._partial_url = partial_url
+        self.overwrite = overwrite
 
         self._load_results()
 
@@ -48,6 +50,7 @@ class Stage:
                     self.race_name, self.date.year, stage=self.number
                 ),
                 strict=False,
+                overwrite=self.overwrite,
             )
             tree = get_stage_html_tree(self.race_name, self.date.year, self.number)
             results = read_stage_results(tree)

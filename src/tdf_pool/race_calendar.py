@@ -148,4 +148,4 @@ def get_races(
 
 
 if __name__ == "__main__":
-    get_races(2024, classification="WWT", category="Elite", genus="Women")
+    get_races(2025, classification="UWT", category="Elite", genus="Men")

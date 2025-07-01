@@ -116,5 +116,5 @@ def get_races_between(date_start: date, date_end: date) -> list[Race]:
 if __name__ == "__main__":
     load_dotenv()
     logging.basicConfig(level="INFO")
-    calendar = get_calendar(2024)
+    calendar = get_calendar(2025)
     print(calendar.head())

@@ -89,6 +89,6 @@ def get_calender_filepath(year: int) -> Path:
 if __name__ == "__main__":
     logging.basicConfig(level="INFO")
     download_webpage(
-        f"https://www.procyclingstats.com/races.php?year=2024",
-        filepath=get_calender_filepath(2024),
+        f"https://www.procyclingstats.com/races.php?year=2025",
+        filepath=get_calender_filepath(2025),
     )
